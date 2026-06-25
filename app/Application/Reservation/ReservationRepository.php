@@ -9,6 +9,10 @@ use DateTimeImmutable;
 
 interface ReservationRepository
 {
+    public function findById(string $reservationId): ?Reservation;
+
+    public function findByIdForUpdate(string $reservationId): ?Reservation;
+
     public function expirePendingForScreening(
         int $screeningId,
         DateTimeImmutable $now,

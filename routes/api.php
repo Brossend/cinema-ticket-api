@@ -3,6 +3,7 @@
 use App\Presentation\Http\Api\V1\Controllers\CreateReservationController;
 use App\Presentation\Http\Api\V1\Controllers\HealthController;
 use App\Presentation\Http\Api\V1\Controllers\ListScreeningsController;
+use App\Presentation\Http\Api\V1\Controllers\PayReservationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -18,4 +19,11 @@ Route::prefix('v1')->group(function (): void {
     )
         ->whereNumber('screening')
         ->name('api.v1.screenings.reservations.store');
+
+    Route::post(
+        '/reservations/{reservation}/pay',
+        PayReservationController::class,
+    )
+        ->whereUuid('reservation')
+        ->name('api.v1.reservations.pay');
 });

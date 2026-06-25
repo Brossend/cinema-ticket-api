@@ -49,6 +49,16 @@ final class InMemoryReservationRepository implements ReservationRepository
      */
     public array $savedReservations = [];
 
+    public function findById(string $reservationId): ?Reservation
+    {
+        return null;
+    }
+
+    public function findByIdForUpdate(string $reservationId): ?Reservation
+    {
+        return null;
+    }
+
     public function __construct(
         private readonly int $occupiedSeats,
     ) {}

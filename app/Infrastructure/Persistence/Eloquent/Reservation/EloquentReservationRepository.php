@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Persistence\Eloquent\Reservation;
 
 use App\Application\Reservation\ReservationRepository;
+use App\Domain\Reservation\Customer;
 use App\Domain\Reservation\Reservation;
 use App\Domain\Reservation\ReservationStatus;
 use App\Infrastructure\Persistence\Eloquent\Models\ReservationModel;
@@ -56,6 +57,52 @@ final class EloquentReservationRepository implements ReservationRepository
                 'paid_at' => $reservation->paidAt(),
                 'cancelled_at' => $reservation->cancelledAt(),
             ],
+        );
+    }
+
+    public function findById(string $reservationId): ?Reservation
+    {
+        $reservation = ReservationModel::query()->find($reservationId);
+
+        return $reservation === null
+            ? null
+            : $this->mapToDomain($reservation);
+    }
+
+    public function findByIdForUpdate(string $reservationId): ?Reservation
+    {
+        $reservation = ReservationModel::query()
+            ->lockForUpdate()
+            ->find($reservationId);
+
+        return $reservation === null
+            ? null
+            : $this->mapToDomain($reservation);
+    }
+
+    private function mapToDomain(ReservationModel $reservation): Reservation
+    {
+        $customer = null;
+
+        if (
+            $reservation->customer_name !== null
+            && $reservation->customer_email !== null
+        ) {
+            $customer = new Customer(
+                name: (string) $reservation->customer_name,
+                email: (string) $reservation->customer_email,
+            );
+        }
+
+        return Reservation::reconstitute(
+            id: (string) $reservation->id,
+            screeningId: (int) $reservation->screening_id,
+            accessTokenHash: (string) $reservation->access_token_hash,
+            expiresAt: $reservation->expires_at->toDateTimeImmutable(),
+            status: ReservationStatus::from((string) $reservation->status),
+            customer: $customer,
+            paidAt: $reservation->paid_at?->toDateTimeImmutable(),
+            cancelledAt: $reservation->cancelled_at?->toDateTimeImmutable(),
         );
     }
 }
