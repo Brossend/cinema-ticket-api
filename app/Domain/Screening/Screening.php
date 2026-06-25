@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Screening;
 
 use App\Domain\Screening\Exception\NoAvailableSeats;
+use App\Domain\Screening\Exception\ScreeningUnavailable;
 use DateTimeImmutable;
 use InvalidArgumentException;
 
@@ -29,6 +30,13 @@ final class Screening
 
         if ($occupiedSeats >= $this->totalSeats) {
             throw new NoAvailableSeats;
+        }
+    }
+
+    public function assertCanBeReservedAt(DateTimeImmutable $now): void
+    {
+        if ($this->startsAt <= $now) {
+            throw new ScreeningUnavailable;
         }
     }
 }
