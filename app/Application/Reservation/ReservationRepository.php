@@ -23,4 +23,8 @@ interface ReservationRepository
     ): int;
 
     public function save(Reservation $reservation): void;
+
+    public function expireAllPending(
+        DateTimeImmutable $now,
+    ): int;
 }

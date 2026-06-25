@@ -78,6 +78,11 @@ final class InMemoryReservationRepository implements ReservationRepository
     {
         $this->savedReservations[] = $reservation;
     }
+
+    public function expireAllPending(DateTimeImmutable $now): int
+    {
+        // TODO: Implement expireAllPending() method.
+    }
 }
 
 final class FixedReservationIdGenerator implements ReservationIdGenerator

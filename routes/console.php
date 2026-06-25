@@ -1,8 +1,11 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+declare(strict_types=1);
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+use App\Presentation\Console\Commands\ExpireReservationsCommand;
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command(ExpireReservationsCommand::class)
+    ->everyMinute()
+    ->withoutOverlapping(2)
+    ->onOneServer();

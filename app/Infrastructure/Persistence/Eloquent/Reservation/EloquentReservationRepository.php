@@ -80,6 +80,18 @@ final class EloquentReservationRepository implements ReservationRepository
             : $this->mapToDomain($reservation);
     }
 
+    public function expireAllPending(
+        DateTimeImmutable $now,
+    ): int {
+        return ReservationModel::query()
+            ->where('status', ReservationStatus::Pending->value)
+            ->where('expires_at', '<=', $now)
+            ->update([
+                'status' => ReservationStatus::Expired->value,
+                'updated_at' => $now,
+            ]);
+    }
+
     private function mapToDomain(ReservationModel $reservation): Reservation
     {
         $customer = null;

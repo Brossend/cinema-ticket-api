@@ -4,24 +4,24 @@ declare(strict_types=1);
 
 use App\Application\Contracts\Clock;
 use App\Application\Contracts\TransactionManager;
+use App\Application\Reservation\CancelReservation\CancelReservationCommand;
+use App\Application\Reservation\CancelReservation\CancelReservationHandler;
 use App\Application\Reservation\Exception\ReservationAccessDenied;
-use App\Application\Reservation\PayReservation\PayReservationCommand;
-use App\Application\Reservation\PayReservation\PayReservationHandler;
 use App\Application\Reservation\ReservationRepository;
 use App\Application\Screening\ScreeningRepository;
 use App\Domain\Reservation\Reservation;
 use App\Domain\Reservation\ReservationStatus;
 use App\Domain\Screening\Screening;
 
-final class PayReservationFixedClock implements Clock
+final class CancelReservationFixedClock implements Clock
 {
     public function now(): DateTimeImmutable
     {
-        return new DateTimeImmutable('2026-06-25T12:01:00+00:00');
+        return new DateTimeImmutable('2026-06-25T12:00:00+00:00');
     }
 }
 
-final class PayReservationImmediateTransactionManager implements TransactionManager
+final class CancelReservationImmediateTransactionManager implements TransactionManager
 {
     public function run(Closure $callback): mixed
     {
@@ -29,7 +29,7 @@ final class PayReservationImmediateTransactionManager implements TransactionMana
     }
 }
 
-final class PayReservationScreeningRepository implements ScreeningRepository
+final class CancelReservationScreeningRepository implements ScreeningRepository
 {
     public function findByIdForUpdate(int $screeningId): ?Screening
     {
@@ -42,7 +42,7 @@ final class PayReservationScreeningRepository implements ScreeningRepository
     }
 }
 
-final class PayReservationInMemoryRepository implements ReservationRepository
+final class CancelReservationInMemoryRepository implements ReservationRepository
 {
     public int $saveCount = 0;
 
@@ -83,18 +83,18 @@ final class PayReservationInMemoryRepository implements ReservationRepository
     }
 }
 
-function makePayReservationHandler(
-    PayReservationInMemoryRepository $reservationRepository,
-): PayReservationHandler {
-    return new PayReservationHandler(
-        transactionManager: new PayReservationImmediateTransactionManager,
-        clock: new PayReservationFixedClock,
-        screeningRepository: new PayReservationScreeningRepository,
+function makeCancelReservationHandler(
+    CancelReservationInMemoryRepository $reservationRepository,
+): CancelReservationHandler {
+    return new CancelReservationHandler(
+        transactionManager: new CancelReservationImmediateTransactionManager,
+        clock: new CancelReservationFixedClock,
+        screeningRepository: new CancelReservationScreeningRepository,
         reservationRepository: $reservationRepository,
     );
 }
 
-it('pays a pending reservation with a valid token', function (): void {
+it('cancels an active reservation with a valid token', function (): void {
     $reservation = Reservation::createPending(
         id: '56f96ec8-8bd9-41dc-9c34-a785dfdb9f6e',
         screeningId: 1,
@@ -102,24 +102,43 @@ it('pays a pending reservation with a valid token', function (): void {
         expiresAt: new DateTimeImmutable('2026-06-25T12:02:00+00:00'),
     );
 
-    $repository = new PayReservationInMemoryRepository($reservation);
+    $repository = new CancelReservationInMemoryRepository($reservation);
 
-    $result = makePayReservationHandler($repository)->handle(
-        new PayReservationCommand(
+    $result = makeCancelReservationHandler($repository)->handle(
+        new CancelReservationCommand(
             reservationId: $reservation->id,
             reservationToken: 'secret-token',
-            customerName: 'Иван Иванов',
-            customerEmail: 'ivan@example.com',
         ),
     );
 
-    expect($result->status)->toBe(ReservationStatus::Paid->value)
+    expect($result->status)->toBe(ReservationStatus::Cancelled)
         ->and($repository->saveCount)->toBe(1)
-        ->and($repository->reservation?->customer()?->email)
-        ->toBe('ivan@example.com');
+        ->and($repository->reservation?->cancelledAt())
+        ->not->toBeNull();
 });
 
-it('does not pay a reservation with an invalid token', function (): void {
+it('marks an expired pending reservation as expired', function (): void {
+    $reservation = Reservation::createPending(
+        id: '56f96ec8-8bd9-41dc-9c34-a785dfdb9f6e',
+        screeningId: 1,
+        accessTokenHash: hash('sha256', 'secret-token'),
+        expiresAt: new DateTimeImmutable('2026-06-25T11:59:00+00:00'),
+    );
+
+    $repository = new CancelReservationInMemoryRepository($reservation);
+
+    $result = makeCancelReservationHandler($repository)->handle(
+        new CancelReservationCommand(
+            reservationId: $reservation->id,
+            reservationToken: 'secret-token',
+        ),
+    );
+
+    expect($result->status)->toBe(ReservationStatus::Expired)
+        ->and($repository->saveCount)->toBe(1);
+});
+
+it('does not cancel a reservation with an invalid token', function (): void {
     $reservation = Reservation::createPending(
         id: '56f96ec8-8bd9-41dc-9c34-a785dfdb9f6e',
         screeningId: 1,
@@ -127,15 +146,13 @@ it('does not pay a reservation with an invalid token', function (): void {
         expiresAt: new DateTimeImmutable('2026-06-25T12:02:00+00:00'),
     );
 
-    $repository = new PayReservationInMemoryRepository($reservation);
+    $repository = new CancelReservationInMemoryRepository($reservation);
 
     expect(
-        fn () => makePayReservationHandler($repository)->handle(
-            new PayReservationCommand(
+        fn () => makeCancelReservationHandler($repository)->handle(
+            new CancelReservationCommand(
                 reservationId: $reservation->id,
                 reservationToken: 'wrong-token',
-                customerName: 'Иван Иванов',
-                customerEmail: 'ivan@example.com',
             ),
         ),
     )->toThrow(ReservationAccessDenied::class);

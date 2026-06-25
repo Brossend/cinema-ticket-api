@@ -1,5 +1,6 @@
 <?php
 
+use App\Presentation\Http\Api\V1\Controllers\CancelReservationController;
 use App\Presentation\Http\Api\V1\Controllers\CreateReservationController;
 use App\Presentation\Http\Api\V1\Controllers\HealthController;
 use App\Presentation\Http\Api\V1\Controllers\ListScreeningsController;
@@ -26,4 +27,11 @@ Route::prefix('v1')->group(function (): void {
     )
         ->whereUuid('reservation')
         ->name('api.v1.reservations.pay');
+
+    Route::delete(
+        '/reservations/{reservation}',
+        CancelReservationController::class,
+    )
+        ->whereUuid('reservation')
+        ->name('api.v1.reservations.destroy');
 });

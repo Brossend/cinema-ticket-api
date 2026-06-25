@@ -20,7 +20,25 @@ services:
                 condition: service_healthy
             redis:
                 condition: service_healthy
-
+    scheduler:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        working_dir: /var/www/html
+        volumes:
+            - ./:/var/www/html
+        command:
+            - sh
+            - -c
+            - |
+                mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+                chmod -R 777 storage bootstrap/cache
+                exec php artisan schedule:work
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
     nginx:
         image: nginx:1.27-alpine
         ports:
