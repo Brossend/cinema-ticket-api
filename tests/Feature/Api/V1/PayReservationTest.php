@@ -17,7 +17,7 @@ it('pays a reservation through the API', function (): void {
         'total_seats' => 10,
     ]);
 
-    $token = 'secret-token';
+    $token = str_repeat('a', 64);
 
     $reservation = ReservationModel::query()->create([
         'id' => (string) Str::uuid(),
@@ -59,7 +59,7 @@ it('does not pay a reservation with an invalid token', function (): void {
     $reservation = ReservationModel::query()->create([
         'id' => (string) Str::uuid(),
         'screening_id' => $screening->id,
-        'access_token_hash' => hash('sha256', 'correct-token'),
+        'access_token_hash' => hash('sha256', str_repeat('a', 64)),
         'status' => ReservationStatus::Pending->value,
         'expires_at' => now()->addMinute(),
     ]);
@@ -71,7 +71,7 @@ it('does not pay a reservation with an invalid token', function (): void {
             'email' => 'ivan@example.com',
         ],
         [
-            'X-Reservation-Token' => 'wrong-token',
+            'X-Reservation-Token' => str_repeat('b', 64),
         ],
     )
         ->assertForbidden()
@@ -84,4 +84,20 @@ it('does not pay a reservation with an invalid token', function (): void {
         'id' => $reservation->id,
         'status' => ReservationStatus::Pending->value,
     ]);
+});
+
+it('requires a reservation token header for payment', function (): void {
+    $this->postJson(
+        '/api/v1/reservations/'
+        .Str::uuid()
+        .'/pay',
+        [
+            'name' => 'Иван Иванов',
+            'email' => 'ivan@example.com',
+        ],
+    )
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors([
+            'reservationToken',
+        ]);
 });

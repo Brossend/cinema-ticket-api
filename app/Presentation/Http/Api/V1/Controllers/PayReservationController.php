@@ -31,9 +31,7 @@ final readonly class PayReservationController
             $result = $this->payReservationHandler->handle(
                 new PayReservationCommand(
                     reservationId: $reservation,
-                    reservationToken: (string) $request->header(
-                        'X-Reservation-Token',
-                    ),
+                    reservationToken: $request->reservationToken(),
                     customerName: $validated['name'],
                     customerEmail: $validated['email'],
                 ),

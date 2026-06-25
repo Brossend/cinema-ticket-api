@@ -10,8 +10,8 @@ use App\Application\Reservation\Exception\ReservationAccessDenied;
 use App\Application\Reservation\Exception\ReservationNotFound;
 use App\Domain\Reservation\Exception\ReservationCannotBeCancelled;
 use App\Domain\Reservation\ReservationStatus;
+use App\Presentation\Http\Api\V1\Requests\CancelReservationRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 final readonly class CancelReservationController
@@ -21,16 +21,14 @@ final readonly class CancelReservationController
     ) {}
 
     public function __invoke(
-        Request $request,
+        CancelReservationRequest $request,
         string $reservation,
     ): JsonResponse {
         try {
             $result = $this->cancelReservationHandler->handle(
                 new CancelReservationCommand(
                     reservationId: $reservation,
-                    reservationToken: (string) $request->header(
-                        'X-Reservation-Token',
-                    ),
+                    reservationToken: $request->reservationToken(),
                 ),
             );
 

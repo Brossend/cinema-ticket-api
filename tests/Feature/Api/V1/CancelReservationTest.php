@@ -17,7 +17,7 @@ it('cancels a reservation through the API', function (): void {
         'total_seats' => 10,
     ]);
 
-    $token = 'secret-token';
+    $token = str_repeat('a', 64);
 
     $reservation = ReservationModel::query()->create([
         'id' => (string) Str::uuid(),
@@ -54,7 +54,7 @@ it('does not cancel a reservation with an invalid token', function (): void {
     $reservation = ReservationModel::query()->create([
         'id' => (string) Str::uuid(),
         'screening_id' => $screening->id,
-        'access_token_hash' => hash('sha256', 'correct-token'),
+        'access_token_hash' => hash('sha256', str_repeat('a', 64)),
         'status' => ReservationStatus::Pending->value,
         'expires_at' => now()->addMinute(),
     ]);
@@ -63,7 +63,7 @@ it('does not cancel a reservation with an invalid token', function (): void {
         "/api/v1/reservations/{$reservation->id}",
         [],
         [
-            'X-Reservation-Token' => 'wrong-token',
+            'X-Reservation-Token' => str_repeat('b', 64),
         ],
     )
         ->assertForbidden()
@@ -76,4 +76,15 @@ it('does not cancel a reservation with an invalid token', function (): void {
         'id' => $reservation->id,
         'status' => ReservationStatus::Pending->value,
     ]);
+});
+
+it('requires a reservation token header for cancellation', function (): void {
+    $this->deleteJson(
+        '/api/v1/reservations/'
+        .Str::uuid(),
+    )
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors([
+            'reservationToken',
+        ]);
 });

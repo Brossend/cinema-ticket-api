@@ -4,15 +4,8 @@ declare(strict_types=1);
 
 namespace App\Presentation\Http\Api\V1\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-final class PayReservationRequest extends FormRequest
+final class PayReservationRequest extends ReservationTokenRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     /**
      * @return array<string, list<string>>
      */
@@ -31,6 +24,7 @@ final class PayReservationRequest extends FormRequest
                 'email:rfc',
                 'max:254',
             ],
+            'reservationToken' => $this->reservationTokenRules(),
         ];
     }
 }
