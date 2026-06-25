@@ -1,0 +1,59 @@
+name: cinema-ticket-api
+
+services:
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        working_dir: /var/www/html
+        volumes:
+            - ./:/var/www/html
+        command:
+            - sh
+            - -c
+            - |
+                mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+                chmod -R 777 storage bootstrap/cache
+                exec php-fpm
+        depends_on:
+            postgres:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+
+    nginx:
+        image: nginx:1.27-alpine
+        ports:
+            - "8080:80"
+        volumes:
+            - ./:/var/www/html:ro
+            - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+        depends_on:
+            - app
+
+    postgres:
+        image: postgres:16-alpine
+        environment:
+            POSTGRES_DB: cinema_ticket
+            POSTGRES_USER: cinema
+            POSTGRES_PASSWORD: cinema_secret
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U cinema -d cinema_ticket"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+
+    redis:
+        image: redis:7-alpine
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+
+volumes:
+    postgres_data:
