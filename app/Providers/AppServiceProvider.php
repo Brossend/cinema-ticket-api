@@ -4,8 +4,11 @@ namespace App\Providers;
 
 use App\Application\Contracts\Clock;
 use App\Application\Contracts\TransactionManager;
+use App\Application\Screening\ListScreenings\ScreeningReadRepository;
+use App\Infrastructure\Persistence\Eloquent\Screening\EloquentScreeningReadRepository;
 use App\Infrastructure\Time\LaravelClock;
 use App\Infrastructure\Transactions\LaravelTransactionManager;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -17,6 +20,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(Clock::class, LaravelClock::class);
         $this->app->singleton(TransactionManager::class, LaravelTransactionManager::class);
+        $this->app->bind(
+            ScreeningReadRepository::class,
+            EloquentScreeningReadRepository::class,
+        );
     }
 
     /**
@@ -24,6 +31,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        JsonResource::withoutWrapping();
     }
 }
